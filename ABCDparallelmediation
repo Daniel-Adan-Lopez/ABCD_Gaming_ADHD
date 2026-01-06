@@ -1,94 +1,213 @@
-title:  parallel mediator 1-1-1 model
-data:
-file is "C:\Users\indoo\Desktop\mplus1wider1.dat";
-listwise = off;
- 
+TITLE: parallel mediator 1-1-1 model
 
-variable:
-NAMES = id sex visit_3 visit_4 visit_5 VGAQ_3 VGAQ_4 VGAQ_5 ADHDDX_3 ADHDDX_4
-     ADHDDX_5 pmqy_3 pmqy_4 pmqy_5 fesy_3 fesy_4 fesy_5 srpfdfs_3 srpfdfs_4
-     srpfdfs_5 srpfii_3 srpfii_4 srpfii_5 srpfses_3 srpfses_4 srpfses_5 age_3 age_4
-     age_5 educ_3 educ_4 educ_5 married_3 married_4 married_5 income_3 income_4
-     income_5 ncrimey_3 ncrimey_4 ncrimey_5 fesp_3 fesp_4 fesp_5;  
-  
+DATA:
+  FILE IS "C:\Users\indoo\Desktop\MPLUSLassoVersion.dat";
+  LISTWISE = OFF;
 
-missing are .;
+VARIABLE:
+  NAMES =
+    participant_id sex fam_id site session_id_2 session_id_3 session_id_4
+     visit_age_2 visit_age_3 visit_age_4 vgaq_2 vgaq_3 vgaq_4 adhd_dx_2 adhd_dx_3
+     adhd_dx_4 pmqy_2 pmqy_3 pmqy_4 fesy_2 fesy_3 fesy_4 srpfdfs_2 srpfdfs_3
+     srpfdfs_4 srpfii_2 srpfii_3 srpfii_4 srpfses_2 srpfses_3 srpfses_4 educ_2
+     educ_3 educ_4 married_2 married_3 married_4 income_2 income_3 income_4
+     ncrimey_2 ncrimey_3 ncrimey_4 crpbi_2 crpbi_3 crpbi_4 psbyss_2 psbyss_3
+     psbyss_4 pbp_rule_2 pbp_rule_3 pbp_rule_4 pbp_soc_2 pbp_soc_3 pbp_soc_4;   
 
-usevariables are
-VGAQ_5 ADHDDX_3 
-pmqy_4 fesy_4 srpfdfs_4 fesp_4
-srpfii_4 srpfses_4 age_3 sex married_3 ncrimey_3 income_3 educ_3
-VGAQ_3 pmqy_3 fesy_3 srpfdfs_3 srpfii_3 fesp_3 
-srpfses_3;
-!adjustment for baseline values of covariates
+  MISSING ARE .;
 
+  USEVARIABLES =
+    vgaq_4 adhd_dx_2 vgaq_2 sex fam_id visit_age_2 married_2 
+    ncrimey_2 educ_2 income_2 site !pmq
+    pmqy_2 pmqy_3 
+    !fes 
+    fesy_2 fesy_3 
+    !srpfdfs 
+    srpfdfs_2 srpfdfs_3 
+    !srpfii
+    srpfii_2 srpfii_3
+    !srpfses 
+    srpfses_2 srpfses_3
+    !psbyss
+    psbyss_2 psbyss_3 
+    !pbp_soc
+    pbp_soc_2 pbp_soc_3 
+    !pbp_rule
+    pbp_rule_2 pbp_rule_3 
+    !crpbypa
+    crpbi_2 crpbi_3;
 
-count is VGAQ_5(nb);
+  CLUSTER IS fam_id;
+
 ANALYSIS:
-TYPE = GENERAL;
-INTEGRATION=MONTECARLO;
-ESTIMATOR=ML;
-!ESTIMATOR=MLR; 
-bootstrap = 500;
-processors = 10;
+  TYPE = COMPLEX;
+  STSEED = 123456;
+  INTEGRATION=MONTECARLO;
+  bootstrap = 10000;
+  processors = 12;
 
- model: 
- !regression models
- VGAQ_5 ON ADHDDX_3 pmqy_4 fesy_4 srpfdfs_4 srpfii_4 fesp_4 
- srpfses_4 age_3 sex married_3 ncrimey_3 income_3 educ_3
- VGAQ_3 pmqy_3 fesy_3 srpfdfs_3 srpfii_3 fesp_3 
- srpfses_3;
- pmqy_4 ON ADHDDX_3 age_3 sex
- married_3 ncrimey_3 income_3 educ_3;
- fesy_4 ON ADHDDX_3 age_3 sex
- married_3 ncrimey_3 income_3 educ_3;
- srpfdfs_4 ON ADHDDX_3 age_3 sex
- married_3 ncrimey_3 income_3 educ_3;
- srpfii_4 ON ADHDDX_3 age_3 sex
- married_3 ncrimey_3 income_3 educ_3;
- srpfses_4 ON ADHDDX_3 age_3 sex
- married_3 ncrimey_3 income_3 educ_3;
- fesp_4 ON ADHDDX_3 age_3 sex
- married_3 ncrimey_3 income_3 educ_3;
+MODEL:
+
+  ! Outcome model
+    vgaq_4 ON
+    pmqy_3 (b1)
+    fesy_3 (b2)
+    srpfdfs_3 (b3)
+    srpfii_3 (b4)
+    srpfses_3 (b5)
+    psbyss_3 (b6)
+    pbp_soc_3 (b7)
+    pbp_rule_3 (b8)
+    crpbi_3 (b9)
+    vgaq_2 sex visit_age_2 married_2 
+    ncrimey_2 educ_2 income_2 site
+    pmqy_2 fesy_2 srpfdfs_2 srpfii_2 
+    srpfses_2 psbyss_2
+    pbp_soc_2 pbp_rule_2 crpbi_2
+    adhd_dx_2 (c);
+
+  ! Mediator models
+  pmqy_3 ON pmqy_2 sex visit_age_2 married_2 
+  ncrimey_2 educ_2 income_2 site
+  adhd_dx_2 (a1);
+
+
+  fesy_3 ON fesy_2 sex visit_age_2 married_2
+  ncrimey_2 educ_2 income_2 site
+  adhd_dx_2 (a2);
  
- !specifying residual correlations
- pmqy_4 WITH fesy_4;
- pmqy_4 WITH srpfdfs_4;
- pmqy_4 WITH srpfii_4;
- pmqy_4 WITH srpfses_4;
- fesy_4 WITH srpfdfs_4;
- fesy_4 WITH srpfii_4;
- fesy_4 WITH srpfses_4;
- srpfii_4 WITH srpfdfs_4;
- srpfii_4 WITH srpfses_4;
- srpfii_4 WITH srpfdfs_4;
- fesp_4 WITH pmqy_4; 
- fesp_4 WITH fesy_4; 
- fesp_4 WITH srpfii_4; 
- fesp_4 WITH srpfdfs_4;
- fesp_4 WITH srpfses_4;
- VGAQ_3 WITH pmqy_3;
- VGAQ_3 WITH fesy_3;
- VGAQ_3 WITH srpfii_3;
- VGAQ_3 WITH srpfdfs_3;
- VGAQ_3 WITH srpfses_3;
- VGAQ_3 WITH fesp_3;
+
+  srpfdfs_3 ON srpfdfs_2 sex visit_age_2 married_2 
+  ncrimey_2 educ_2 income_2 site
+   adhd_dx_2 (a3);
 
 
- model indirect:
- VGAQ_5 ind ADHDDX_3;
- VGAQ_5 ind fesy_4;
- VGAQ_5 ind pmqy_4;
- VGAQ_5 ind srpfdfs_4;
- VGAQ_5 ind srpfii_4;
- VGAQ_5 ind srpfses_4;
- VGAQ_5 ind fesp_4;
+  srpfii_3 ON srpfii_2 sex visit_age_2 married_2 
+  ncrimey_2 educ_2 income_2 site
+   adhd_dx_2 (a4);
 
- output:
- stdyx;
- CINTERVAL;
- !CINTERVAL (BOOTSTRAP);
- sampstat;
 
- PLOT:
- TYPE = PLOT3;
+  srpfses_3 ON srpfses_2 sex visit_age_2 married_2 
+  ncrimey_2 educ_2 income_2 site
+   adhd_dx_2 (a5);
+
+  psbyss_3 ON psbyss_2 sex visit_age_2 married_2 
+  ncrimey_2 educ_2 income_2 site
+   adhd_dx_2 (a6);
+
+  pbp_soc_3 ON pbp_soc_2 sex visit_age_2 married_2
+  ncrimey_2 educ_2 income_2 site 
+   adhd_dx_2 (a7);
+
+
+  pbp_rule_3 ON pbp_rule_2 sex visit_age_2 married_2
+  ncrimey_2 educ_2 income_2 site  
+   adhd_dx_2 (a8);
+
+  crpbi_3 ON crpbi_2 sex visit_age_2 married_2 
+  ncrimey_2 educ_2 income_2 site
+   adhd_dx_2 (a9);
+ 
+
+    !specifying residual correlations
+   !pmq
+   pmqy_3 WITH fesy_3;
+   pmqy_3 WITH srpfdfs_3;
+   pmqy_3 WITH srpfii_3;
+   pmqy_3 WITH srpfses_3;
+   pmqy_3 WITH psbyss_3;
+   pmqy_3 WITH pbp_soc_3;
+   pmqy_3 WITH pbp_rule_3;
+   pmqy_3 WITH crpbi_3;
+
+   !fes
+   fesy_3 WITH srpfdfs_3;
+   fesy_3 WITH srpfii_3;
+   fesy_3 WITH srpfses_3;
+   fesy_3 WITH psbyss_3;
+   fesy_3 WITH pbp_soc_3;
+   fesy_3 WITH pbp_rule_3;
+   fesy_3 WITH crpbi_3;
+
+   !srpfdfs
+   srpfdfs_3 WITH srpfii_3;
+   srpfdfs_3 WITH srpfses_3;
+   srpfdfs_3 WITH psbyss_3;
+   srpfdfs_3 WITH pbp_soc_3;
+   srpfdfs_3 WITH pbp_rule_3;
+   srpfdfs_3 WITH crpbi_3;
+
+   !srpfii
+   srpfii_3 WITH srpfses_3;
+   srpfii_3 WITH psbyss_3;
+   srpfii_3 WITH pbp_soc_3;
+   srpfii_3 WITH pbp_rule_3;
+   srpfii_3 WITH crpbi_3;
+
+   !srpfses
+   srpfses_3 WITH psbyss_3;
+   srpfses_3 WITH pbp_soc_3;
+   srpfses_3 WITH pbp_rule_3;
+   srpfses_3 WITH crpbi_3;
+
+   !psbyss
+   psbyss_3 WITH pbp_soc_3;
+   psbyss_3 WITH pbp_rule_3;
+   psbyss_3 WITH crpbi_3;
+
+   !pbp_soc
+   pbp_soc_3 WITH pbp_rule_3;
+   pbp_soc_3 WITH crpbi_3;
+
+   !pbp_rule
+   pbp_rule_3 WITH crpbi_3;
+
+
+MODEL CONSTRAINT:
+  NEW(indirect1 indirect2 indirect3 indirect4 
+  indirect5 indirect6 indirect7 indirect8 indirect9);
+  NEW(totalindirect direct totaleffect);
+  NEW(prop_med1 prop_med2 prop_med3 prop_med4 
+  prop_med5 prop_med6 prop_med7 prop_med8 prop_med9);
+
+  indirect1 = a1 * b1;
+  indirect2 = a2 * b2;
+  indirect3 = a3 * b3;
+  indirect4 = a4 * b4;
+  indirect5 = a5 * b5;
+  indirect6 = a6 * b6;
+  indirect7 = a7 * b7;
+  indirect8 = a8 * b8;
+  indirect9 = a9 * b9;
+
+ ! Total indirect effect
+  totalindirect = indirect1 + indirect2 + indirect3 +
+                  indirect4 + indirect5 + indirect6 +
+                  indirect7 + indirect8 + indirect9;
+
+! Direct effect
+  direct = c;
+
+  ! Total effect
+  totaleffect = totalindirect + direct;
+
+  prop_med1 = indirect1 / totaleffect;
+  prop_med2 = indirect2 / totaleffect;
+  prop_med3 = indirect3 / totaleffect;
+  prop_med4 = indirect4 / totaleffect;
+  prop_med5 = indirect5 / totaleffect;
+  prop_med6 = indirect6 / totaleffect;
+  prop_med7 = indirect7 / totaleffect;
+  prop_med8 = indirect8 / totaleffect;
+  prop_med9 = indirect9 / totaleffect;
+
+MODEL INDIRECT:
+  vgaq_4 IND adhd_dx_2;
+
+OUTPUT:
+  STDYX;
+  CINTERVAL (BOOTSTRAP);
+  SAMPSTAT;
+
+PLOT:
+  TYPE = PLOT3;
