@@ -1,0 +1,102 @@
+# =============================================================================
+# ABCD 6.0 – ADHD & Video Game Addiction Questionnaire (VGAQ) scoring
+# Output dataframe name: ABCD_ADHD_VGAQ
+#
+# Items (youth-report STQ video game module):
+# nt_y_stq__vidgame_001 ... nt_y_stq__vidgame_006
+#
+# Response coding:
+# 1 = Never
+# 2 = Very rarely
+# 3 = Rarely
+# 4 = Sometimes
+# 5 = Often
+# 6 = Very often
+# 777 = Decline to answer  (set to NA)
+#
+# Scores produced:
+# - vgaq_total_raw   : sum of item scores (1–6), NA if any item missing
+# - vgaq_mean_raw    : mean of item scores (1–6), NA if any item missing
+# - vgaq_total_raw_prorated : sum prorated to 6 items if >= min_items present
+# - vgaq_mean_raw_prorated  : mean over available items if >= min_items present
+# - vgaq_total_zero  : sum of (item-1), range 0–30, NA handling mirrors prorated
+# - vgaq_n_answered  : number of non-missing items used
+#
+# Notes:
+# - Prorating is optional but helps if you want to retain partial responders.
+# - Session filtering is applied to keep standard ABCD annual sessions.
+# =============================================================================
+
+gaming_items <- c(
+  "nt_y_stq__vidgame_001",
+  "nt_y_stq__vidgame_002",
+  "nt_y_stq__vidgame_003",
+  "nt_y_stq__vidgame_004",
+  "nt_y_stq__vidgame_005",
+  "nt_y_stq__vidgame_006"
+)
+
+valid_sessions <- c("ses-00A","ses-01A","ses-02A","ses-03A","ses-04A","ses-05A","ses-06A")
+
+# Minimum number of items required to compute prorated scores
+min_items <- 4
+
+# ---- 2) Clean items: convert to numeric, recode 777 -> NA -------------------
+# This will create *_num columns (numeric 1–6, with 777 set to NA)
+ABCD_ADHD_VGAQ <- ABCD_ADHD_VGAQ %>%
+  mutate(
+    across(
+      all_of(gaming_items),
+      ~ suppressWarnings(as.numeric(as.character(.))),
+      .names = "{.col}_num"
+    )
+  ) %>%
+  mutate(
+    across(
+      ends_with("_num"),
+      ~ dplyr::na_if(., 777)
+    )
+  )
+
+gaming_num_cols <- paste0(gaming_items, "_num")
+
+# ---- 3) Scoring --------------------------------------------------------------
+ABCD_ADHD_VGAQ <- ABCD_ADHD_VGAQ %>%
+  rowwise() %>%
+  mutate(
+    # Count non-missing items
+    vgaq_n_answered = sum(!is.na(c_across(all_of(gaming_num_cols)))),
+
+    # "Complete-case" scores (require all 6 items)
+    vgaq_total_raw = if (vgaq_n_answered == length(gaming_num_cols)) {
+      sum(c_across(all_of(gaming_num_cols)))
+    } else {
+      NA_real_
+    },
+    vgaq_mean_raw = if (vgaq_n_answered == length(gaming_num_cols)) {
+      mean(c_across(all_of(gaming_num_cols)))
+    } else {
+      NA_real_
+    },
+
+    # Prorated scores (require >= min_items)
+    vgaq_mean_raw_prorated = if (vgaq_n_answered >= min_items) {
+      mean(c_across(all_of(gaming_num_cols)), na.rm = TRUE)
+    } else {
+      NA_real_
+    },
+    vgaq_total_raw_prorated = if (vgaq_n_answered >= min_items) {
+      # prorate to 6 items: mean of answered * 6
+      vgaq_mean_raw_prorated * length(gaming_num_cols)
+    } else {
+      NA_real_
+    },
+
+    # Zero-based total: subtract 1 from each item (1–6 -> 0–5), then sum
+    vgaq_total_zero = if (vgaq_n_answered >= min_items) {
+      sum((c_across(all_of(gaming_num_cols)) - 1), na.rm = TRUE)
+    } else {
+      NA_real_
+    }
+  ) %>%
+  ungroup()
