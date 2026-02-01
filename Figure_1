@@ -1,0 +1,151 @@
+#####
+#Figure 1 code
+library(ggplot2)
+library(ggforce)
+library(grid)
+
+# Helper: specify text size in points
+.sp <- function(pt) pt / ggplot2::.pt
+
+## ================== EDIT THESE IF NEEDED ==================
+
+node_labels <- c(
+  "ADHD KSADS\nPresent at year-2",
+  "Psychosocial factor\nat year-3",
+  "VGAQ at year-4"
+)
+
+header  <- "Psychosocial scales tested:"
+bullets <- paste(
+  "• Parental Monitoring Survey",
+  "• Family Conflict subscale",
+  "• Prosocial Behavior Scale",
+  "• Children’s Report of Parental Behavioral Inventory",
+  "• School Risk & Protective Factors",
+  "• Peer Behavior Profile",
+  sep = "\n"
+)
+
+out_file <- "mediation_figure.png"
+
+## ================== LAYOUT / DRAWING CODE ==================
+
+# ---------- Nodes ----------
+nodes <- data.frame(
+  name = node_labels,
+  x = c(0, 5.5, 11),
+  y = c(0, 4, 0),
+  a = c(2.1, 2.3, 2.1),  # ellipse x-radius
+  b = c(1.3, 1.5, 1.3)   # ellipse y-radius
+)
+
+# ---------- Helper: ellipse edge from c1 toward c2 ----------
+edge_point <- function(c1x, c1y, a, b, c2x, c2y) {
+  dx <- c2x - c1x; dy <- c2y - c1y
+  s  <- 1 / sqrt((dx^2)/(a^2) + (dy^2)/(b^2))
+  c(c1x + s*dx, c1y + s*dy)
+}
+
+# Arrow endpoints (edge-to-edge)
+# a: ADHD -> Psychosocial
+p1s <- with(nodes, edge_point(x[1], y[1], a[1], b[1], x[2], y[2]))
+p1e <- with(nodes, edge_point(x[2], y[2], a[2], b[2], x[1], y[1]))
+# b: Psychosocial -> VGAQ
+p2s <- with(nodes, edge_point(x[2], y[2], a[2], b[2], x[3], y[3]))
+p2e <- with(nodes, edge_point(x[3], y[3], a[3], b[3], x[2], y[2]))
+# c′: ADHD -> VGAQ (horizontal)
+p3s <- c(nodes$x[1] + nodes$a[1], nodes$y[1])
+p3e <- c(nodes$x[3] - nodes$a[3], nodes$y[3])
+
+# Midpoints for labels
+mid_a <- (p1s + p1e) / 2
+mid_b <- (p2s + p2e) / 2
+mid_c <- (p3s + p3e) / 2
+
+# ---------- Left callout (larger) ----------
+adhd_left_edge <- nodes$x[1] - nodes$a[1]
+call_w <- 4.8
+call_h <- 2.9
+call_xmax <- adhd_left_edge - 0.6
+call_xmin <- call_xmax - call_w
+call_ymax <- nodes$y[2] + 1.1
+call_ymin <- call_ymax - call_h
+
+# ---------- Limits (include callout extents) ----------
+xpad <- 0.8; ypad <- 0.8
+xmin <- min(nodes$x - nodes$a, call_xmin) - xpad
+xmax <- max(nodes$x + nodes$a, call_xmax) + xpad
+ymin <- min(nodes$y - nodes$b, call_ymin) - ypad
+ymax <- max(nodes$y + nodes$b, call_ymax) + ypad
+
+arrow_spec <- arrow(length = unit(0.27, "cm"), type = "closed")
+
+p <- ggplot() +
+  coord_fixed(xlim = c(xmin, xmax), ylim = c(ymin, ymax),
+              expand = FALSE, clip = "off") +
+  theme_void() +
+  theme(
+    text = element_text(size = 18),
+    plot.title = element_text(size = 18, face = "bold")
+  )
+
+# Ellipse nodes
+p <- p +
+  ggforce::geom_ellipse(
+    data = nodes,
+    aes(x0 = x, y0 = y, a = a, b = b, angle = 0),
+    fill = "#EFF6FF", colour = "#94A3B8", linewidth = 0.7
+  ) +
+  geom_text(
+    data = nodes, aes(x = x, y = y, label = name),
+    lineheight = 0.95, size = .sp(12.5)
+  )
+
+# Paths
+p <- p +
+  geom_segment(aes(x = p1s[1], y = p1s[2], xend = p1e[1], yend = p1e[2]),
+               linewidth = 0.7, arrow = arrow_spec) +
+  geom_segment(aes(x = p2s[1], y = p2s[2], xend = p2e[1], yend = p2e[2]),
+               linewidth = 0.7, arrow = arrow_spec) +
+  geom_segment(aes(x = p3s[1], y = p3s[2], xend = p3e[1], yend = p3e[2]),
+               linewidth = 0.7, arrow = arrow_spec)
+
+# Labels a, b, c′
+p <- p +
+  annotate("text", x = mid_a[1], y = mid_a[2] + 0.45,
+           label = "a (indirect)", size = .sp(11)) +
+  annotate("text", x = mid_b[1], y = mid_b[2] + 0.45,
+           label = "b (indirect)", size = .sp(11)) +
+  annotate("text", x = mid_c[1], y = mid_c[2] - 0.55,
+           label = "c' (direct)", size = .sp(11))
+
+# Left callout box + text
+p <- p +
+  annotate("rect",
+           xmin = call_xmin, xmax = call_xmax,
+           ymin = call_ymin, ymax = call_ymax,
+           fill = "white", colour = "#CBD5E1", linewidth = 0.5)
+
+header_y <- call_ymax - 0.2
+p <- p +
+  annotate("text",
+           x = call_xmin + 0.2, y = header_y,
+           label = header, hjust = 0, vjust = 1,
+           size = .sp(14), fontface = "bold") +
+  annotate("text",
+           x = call_xmin + 0.2, y = header_y - 0.42,
+           label = bullets, hjust = 0, vjust = 1,
+           size = .sp(10.5), lineheight = 1.06)
+
+p
+
+# ---- Save for manuscript ----
+ggsave(
+  filename = out_file,
+  plot = p,
+  width = 8,
+  height = 6,
+  units = "in",
+  dpi = 400,
+  bg = "white"
+)
