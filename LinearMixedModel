@@ -1,0 +1,25 @@
+library(glmmtmb)
+library(emmeans)
+
+system.time(Model_VGAQ_3 <- glmmTMB(VGTotal_Zero ~ 1+ab_g_dyn__visit_age +factor(adhd_dx_clean)+factor(ab_g_stc__cohort_sex)+
+                                      factor(ab_g_dyn__cohort_income__hhold__6lvl)+factor(ab_g_dyn__cohort_edu__cgs)+
+                                      nsc_mean_bl+factor(marital_status_bl)+ (1+visit |ab_g_dyn__design_site/ab_g_stc__design_id__fam),
+                                      data=ABCD_Med_Data_LassoVersion_234))
+summary(Model_VGAQ_3)
+#factor(adhd_dx_clean)1                           1.29327    0.16488    7.84 4.37e-15 ***
+#  AIC      BIC   logLik deviance df.resid 
+#141559.9 141792.7 -70750.9 141501.9    22658 
+#Number of obs: 22687, groups:  ab_g_stc__design_id__fam:ab_g_dyn__design_site, 8560; ab_g_dyn__design_site, 21
+# user  system elapsed 
+# 401.00    4.37  329.72 
+
+confint(Model_VGAQ_3)
+#factor(adhd_dx_clean)1                                                0.9701199188   1.61642766  1.29327379
+
+#Estimate the marginal means
+
+emm_adhd <- emmeans(Model_VGAQ_3, ~ adhd_dx_clean)
+summary(emm_adhd)
+# adhd_dx_clean emmean    SE    df lower.CL upper.CL
+# 0             6.86 0.183 22658     6.50     7.22
+# 1             8.15 0.241 22658     7.68     8.63
