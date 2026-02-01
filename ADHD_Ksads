@@ -1,0 +1,47 @@
+#let's look for the KSADS ADHD Diagnosis variable
+table(ABCD_Med_Data_LassoVersion$session_id, ABCD_Med_Data_LassoVersion$mh_p_ksads__adhd__pres_dx, useNA = "always")
+#not collected at year 5
+#should be okay since we did not use year 5, just years 2 through 4.
+#the 888 should be included in the 0 because if they were not administered 
+#then they likely did not meet criteria for ADHD.
+#             1     0   555   888  <NA>
+# ses-00A   866 10758     0   243     1
+# ses-01A   938 10106     0   174     1
+# ses-02A   604 10145     0   223     1
+# ses-03A   556  9390     0    10   494
+# ses-04A   437  7911     0     7  1384
+# ses-05A     0     0  7919     0   966
+# ses-06A   246  4681     0    10   119
+
+
+#let's clean it up
+
+#Filter to sessions of interest (02A to 04A only)
+adhd_filtered <- ABCD_Med_Data_LassoVersion %>%
+  filter(session_id %in% c("ses-00A", "ses-01A", "ses-02A", "ses-03A", "ses-04A", "ses-06A")) %>%
+  select(participant_id, session_id, mh_p_ksads__adhd__pres_dx)
+
+#Recode ADHD diagnosis for these sessions
+adhd_filtered <- adhd_filtered %>%
+  mutate(adhd_dx_clean = case_when(
+    mh_p_ksads__adhd__pres_dx == 1 ~ 1,
+    mh_p_ksads__adhd__pres_dx %in% c(0, 888) ~ 0,
+    mh_p_ksads__adhd__pres_dx == 555 ~ NA_real_,
+    TRUE ~ NA_real_
+  ))
+
+#join back
+ABCD_Med_Data_LassoVersion <- ABCD_Med_Data_LassoVersion %>%
+  left_join(adhd_filtered %>% select(participant_id, session_id, adhd_dx_clean),
+            by = c("participant_id", "session_id"))
+
+
+table(ABCD_Med_Data_LassoVersion$session_id, ABCD_Med_Data_LassoVersion$adhd_dx_clean , useNA = "always")
+#             0     1  <NA>
+# ses-00A 11001   866     1
+# ses-01A 10280   938     1
+# ses-02A 10368   604     1
+# ses-03A  9400   556   494
+# ses-04A  7918   437  1384
+# ses-05A     0     0  8885
+# ses-06A  4691   246   119
