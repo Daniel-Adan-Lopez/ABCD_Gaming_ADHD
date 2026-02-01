@@ -1,0 +1,80 @@
+Youth / family / school mediators:
+
+fc_y_fes__confl_mean → Family conflict
+
+fc_y_pm_mean → Parental monitoring (youth report)
+
+fc_y_psb_mean → Youth prosocial behavior
+
+fc_y_srpf__dis_mean → School disengagement
+
+fc_y_srpf__env_mean → School environment
+
+fc_y_srpf__involv_mean → School involvement
+
+Peer mediators:
+
+delinquent_peer_mean
+
+prosocial_peer_mean
+
+Parenting (collected Y1 & Y3 only):
+
+fc_y_crpbi__cg1_mean → Child Report of Parental Behavior Inventory
+
+##########
+#first let's make sure it's in wide format
+mediators <- c(
+  "fc_y_fes__confl_mean",
+  "fc_y_pm_mean",
+  "fc_y_psb_mean",
+  "fc_y_srpf__dis_mean",
+  "fc_y_srpf__env_mean",
+  "fc_y_srpf__involv_mean",
+  "delinquent_peer_mean",
+  "prosocial_peer_mean",
+  "fc_y_crpbi__cg1_mean"
+)
+
+ABCD_wide_meds <- ABCD_Med_Data_LassoVersion %>%
+  select(src_subject_id, session_id, all_of(mediators)) %>%
+  pivot_wider(
+    names_from = session_id,
+    values_from = all_of(mediators),
+    names_glue = "{.value}_{session_id}"
+  )
+
+#Flag missing if any required mediator wave was missing
+
+ABCD$missing_mediator <- ifelse(
+  is.na(ABCD$fc_y_fes__confl_mean_y2) | is.na(ABCD$fc_y_fes__confl_mean_y3) |
+  is.na(ABCD$fc_y_pm_mean_y2) | is.na(ABCD$fc_y_pm_mean_y3) |
+  is.na(ABCD$fc_y_psb_mean_y2) | is.na(ABCD$fc_y_psb_mean_y3) |
+  is.na(ABCD$fc_y_srpf__dis_mean_y2) | is.na(ABCD$fc_y_srpf__dis_mean_y3) |
+  is.na(ABCD$fc_y_srpf__env_mean_y2) | is.na(ABCD$fc_y_srpf__env_mean_y3) |
+  is.na(ABCD$fc_y_srpf__involv_mean_y2) | is.na(ABCD$fc_y_srpf__involv_mean_y3) |
+  is.na(ABCD$delinquent_peer_mean_y2) | is.na(ABCD$delinquent_peer_mean_y3) |
+  is.na(ABCD$prosocial_peer_mean_y2) | is.na(ABCD$prosocial_peer_mean_y3) |
+  is.na(ABCD$fc_y_crpbi__cg1_mean_y1) | is.na(ABCD$fc_y_crpbi__cg1_mean_y3),
+  1, 0
+)
+
+#########
+#create a table comparing those missing mediator vs those not missing mediator values across different demographic variables
+
+vars <- c(
+  "ab_g_dyn__visit_age",
+  "ab_g_stc__cohort_sex",
+  "marital_status_bl",
+  "ab_g_dyn__cohort_income__hhold__6lvl",
+  "ab_g_dyn__cohort_edu__cgs",
+  "ADHD_dx",
+  "nsc_mean_bl"
+)
+
+CreateTableOne(
+  vars = vars,
+  strata = "missing_mediator",
+  data = ABCD_Data,
+  test = TRUE
+)
